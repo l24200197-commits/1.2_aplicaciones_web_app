@@ -1,5 +1,5 @@
 const API_URL =
-    "fetch('https://12aplicacioneswebapp1-ou3nuwf4e-inteligencia4.vercel.app/api/chat', ...)";
+    "fetch('https://12aplicacioneswebapp1.vercel.app/api/chat', ...)";
 
 const form = document.getElementById("chatForm");
 const input = document.getElementById("messageInput");
