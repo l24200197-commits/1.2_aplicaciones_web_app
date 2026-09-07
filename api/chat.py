@@ -142,7 +142,7 @@ class handler(BaseHTTPRequestHandler):
            )
 
            response = client.responses.create(
-               model="gpt-4o-mini",
+               model="gpt-5.6-luna",
                instructions="""
                Eres un asistente educativo especializado
                en Tecnologías de Información y Comunicaciones.
@@ -151,6 +151,9 @@ class handler(BaseHTTPRequestHandler):
                a comprender el concepto.
                """,
                input=message,
+               reasoning={
+                   "effort": "none"
+               },
                max_output_tokens=500
            )
 
