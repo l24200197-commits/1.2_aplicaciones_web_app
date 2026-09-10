@@ -1,45 +1,50 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-   <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>Chat IA</title>
-   <link rel="stylesheet" href="assets/css/styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asistente TIC · Ciberseguridad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
 
-   <main class="app">
-       <header class="header">
-           <div>
-               <h1>Chat IA</h1>
-               <p>Inteligencia Artificial aplicada a las TIC</p>
-           </div>
-           <span class="status">● IA disponible</span>
-       </header>
+<main class="chat-shell">
 
-       <section id="messages" class="messages" aria-live="polite">
-           <div class="message assistant">
-               <div class="message-label">IA</div>
-               <div class="message-content">
-                   Hola. Soy tu asistente de Inteligencia Artificial.
-                   ¿En qué puedo ayudarte?
-               </div>
-           </div>
-       </section>
+  <header class="chat-header">
+    <div class="chat-header__title">
+      <span class="status-dot" aria-hidden="true"></span>
+      <div>
+        <h1>Asistente TIC</h1>
+        <p>Ciberseguridad aplicada &middot; IA disponible</p>
+      </div>
+    </div>
+    <button type="button" id="newChatButton" class="new-chat-button">
+      Nueva conversación
+    </button>
+  </header>
 
-       <form id="chatForm" class="chat-form">
-           <input
-               id="messageInput"
-               type="text"
-               maxlength="1000"
-               placeholder="Escribe una pregunta..."
-               autocomplete="off"
-               required
-           >
-           <button id="sendButton" type="submit">Enviar</button>
-       </form>
-   </main>
+  <section id="messages" class="messages" aria-live="polite"></section>
 
-   <script src="assets/js/app.js?v=2"></script>
+  <form id="chatForm" class="chat-form">
+    <div class="chat-form__row">
+      <input
+        type="text"
+        id="messageInput"
+        class="chat-input"
+        placeholder="Pregunta sobre redes, IoT, desarrollo web o ciberseguridad..."
+        autocomplete="off"
+        maxlength="1000"
+      >
+      <button type="submit" id="sendButton" class="send-button">Enviar</button>
+    </div>
+    <div id="charCounter" class="char-counter">0 / 1000</div>
+  </form>
+
+</main>
+
+<script src="assets/js/app.js"></script>
 </body>
 </html>
