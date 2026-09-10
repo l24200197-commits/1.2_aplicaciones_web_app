@@ -5,182 +5,181 @@ from http.server import BaseHTTPRequestHandler
 from openai import OpenAI
 
 
-ALLOWED_ORIGIN = os.environ.get(
-   "ALLOWED_ORIGIN",
-   ""
-).rstrip("/")
+# ALLOWED_ORIGIN ahora acepta uno o varios orígenes separados por coma, ej:
+# ALLOWED_ORIGIN=https://l24200197-commits.github.io,https://12aplicacioneswebapp1.vercel.app
+ALLOWED_ORIGINS = [
+    origin.strip().rstrip("/")
+    for origin in os.environ.get("ALLOWED_ORIGIN", "").split(",")
+    if origin.strip()
+]
 
 
 class handler(BaseHTTPRequestHandler):
 
-   def add_cors_headers(self):
-       origin = self.headers.get("Origin", "")
+    def add_cors_headers(self):
+        origin = self.headers.get("Origin", "")
 
-       if ALLOWED_ORIGIN and origin == ALLOWED_ORIGIN:
-           self.send_header(
-               "Access-Control-Allow-Origin",
-               origin
-           )
-           self.send_header("Vary", "Origin")
+        if origin in ALLOWED_ORIGINS:
+            self.send_header(
+                "Access-Control-Allow-Origin",
+                origin
+            )
+            self.send_header("Vary", "Origin")
 
+    def send_json(self, status_code, data):
+        body = json.dumps(
+            data,
+            ensure_ascii=False
+        ).encode("utf-8")
 
-   def send_json(self, status_code, data):
-       body = json.dumps(
-           data,
-           ensure_ascii=False
-       ).encode("utf-8")
+        self.send_response(status_code)
+        self.send_header(
+            "Content-Type",
+            "application/json; charset=utf-8"
+        )
+        self.add_cors_headers()
+        self.send_header(
+            "Content-Length",
+            str(len(body))
+        )
+        self.end_headers()
 
-       self.send_response(status_code)
-       self.send_header(
-           "Content-Type",
-           "application/json; charset=utf-8"
-       )
-       self.add_cors_headers()
-       self.send_header(
-           "Content-Length",
-           str(len(body))
-       )
-       self.end_headers()
+        self.wfile.write(body)
 
-       self.wfile.write(body)
+    def do_OPTIONS(self):
+        origin = self.headers.get("Origin", "")
 
+        if ALLOWED_ORIGINS and origin not in ALLOWED_ORIGINS:
+            self.send_response(403)
+            self.end_headers()
+            return
 
-   def do_OPTIONS(self):
-       origin = self.headers.get("Origin", "")
+        self.send_response(204)
+        self.add_cors_headers()
+        self.send_header(
+            "Access-Control-Allow-Methods",
+            "POST, OPTIONS"
+        )
+        self.send_header(
+            "Access-Control-Allow-Headers",
+            "Content-Type"
+        )
+        self.send_header(
+            "Access-Control-Max-Age",
+            "86400"
+        )
+        self.end_headers()
 
-       if ALLOWED_ORIGIN and origin != ALLOWED_ORIGIN:
-           self.send_response(403)
-           self.end_headers()
-           return
+    def do_GET(self):
+        self.send_json(
+            405,
+            {
+                "error":
+                    "Este endpoint solamente acepta POST."
+            }
+        )
 
-       self.send_response(204)
-       self.add_cors_headers()
-       self.send_header(
-           "Access-Control-Allow-Methods",
-           "POST, OPTIONS"
-       )
-       self.send_header(
-           "Access-Control-Allow-Headers",
-           "Content-Type"
-       )
-       self.send_header(
-           "Access-Control-Max-Age",
-           "86400"
-       )
-       self.end_headers()
+    def do_POST(self):
+        try:
+            origin = self.headers.get("Origin", "")
 
+            if ALLOWED_ORIGINS and origin not in ALLOWED_ORIGINS:
+                self.send_json(
+                    403,
+                    {"error": "Origen no autorizado."}
+                )
+                return
 
-   def do_GET(self):
-       self.send_json(
-           405,
-           {
-               "error":
-                   "Este endpoint solamente acepta POST."
-           }
-       )
+            content_length = int(
+                self.headers.get("Content-Length", 0)
+            )
 
+            if content_length <= 0 or content_length > 5000:
+                self.send_json(
+                    413,
+                    {"error": "Petición no válida o demasiado grande."}
+                )
+                return
 
-   def do_POST(self):
-       try:
-           origin = self.headers.get("Origin", "")
+            body = self.rfile.read(content_length)
 
-           if ALLOWED_ORIGIN and origin != ALLOWED_ORIGIN:
-               self.send_json(
-                   403,
-                   {"error": "Origen no autorizado."}
-               )
-               return
+            data = json.loads(
+                body.decode("utf-8")
+            )
 
-           content_length = int(
-               self.headers.get("Content-Length", 0)
-           )
+            message = str(
+                data.get("message", "")
+            ).strip()
 
-           if content_length <= 0 or content_length > 5000:
-               self.send_json(
-                   413,
-                   {"error": "Petición no válida o demasiado grande."}
-               )
-               return
+            if not message:
+                self.send_json(
+                    400,
+                    {"error": "Es necesario escribir un mensaje."}
+                )
+                return
 
-           body = self.rfile.read(content_length)
+            if len(message) > 1000:
+                self.send_json(
+                    400,
+                    {"error": "El mensaje supera los 1000 caracteres."}
+                )
+                return
 
-           data = json.loads(
-               body.decode("utf-8")
-           )
+            api_key = os.environ.get(
+                "OPENAI_API_KEY"
+            )
 
-           message = str(
-               data.get("message", "")
-           ).strip()
+            if not api_key:
+                self.send_json(
+                    500,
+                    {"error": "OPENAI_API_KEY no está configurada."}
+                )
+                return
 
-           if not message:
-               self.send_json(
-                   400,
-                   {"error": "Es necesario escribir un mensaje."}
-               )
-               return
+            client = OpenAI(
+                api_key=api_key
+            )
 
-           if len(message) > 1000:
-               self.send_json(
-                   400,
-                   {"error": "El mensaje supera los 1000 caracteres."}
-               )
-               return
+            response = client.responses.create(
+                model="gpt-5.6-luna",
+                instructions="""
+                Eres un asistente educativo especializado
+                en Tecnologías de Información y Comunicaciones.
+                Responde siempre en español, de manera clara,
+                breve y didáctica. Incluye ejemplos cuando ayuden
+                a comprender el concepto.
+                """,
+                input=message,
+                reasoning={
+                    "effort": "none"
+                },
+                max_output_tokens=500
+            )
 
-           api_key = os.environ.get(
-               "OPENAI_API_KEY"
-           )
+            self.send_json(
+                200,
+                {
+                    "reply":
+                        response.output_text
+                }
+            )
 
-           if not api_key:
-               self.send_json(
-                   500,
-                   {"error": "OPENAI_API_KEY no está configurada."}
-               )
-               return
+        except json.JSONDecodeError:
+            self.send_json(
+                400,
+                {"error": "El cuerpo no contiene JSON válido."}
+            )
 
-           client = OpenAI(
-               api_key=api_key
-           )
+        except Exception as error:
+            print(
+                f"Error en /api/chat: "
+                f"{type(error).__name__}: {error}"
+            )
 
-           response = client.responses.create(
-               model="gpt-5.6-luna",
-               instructions="""
-               Eres un asistente educativo especializado
-               en Tecnologías de Información y Comunicaciones.
-               Responde siempre en español, de manera clara,
-               breve y didáctica. Incluye ejemplos cuando ayuden
-               a comprender el concepto.
-               """,
-               input=message,
-               reasoning={
-                   "effort": "none"
-               },
-               max_output_tokens=500
-           )
-
-           self.send_json(
-               200,
-               {
-                   "reply":
-                       response.output_text
-               }
-           )
-
-       except json.JSONDecodeError:
-           self.send_json(
-               400,
-               {"error": "El cuerpo no contiene JSON válido."}
-           )
-
-       except Exception as error:
-           print(
-               f"Error en /api/chat: "
-               f"{type(error).__name__}: {error}"
-           )
-
-           self.send_json(
-               500,
-               {
-                   "error":
-                       "No fue posible consultar el modelo de IA."
-               }
-           )
+            self.send_json(
+                500,
+                {
+                    "error":
+                        "No fue posible consultar el modelo de IA."
+                }
+            )
