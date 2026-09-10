@@ -1,5 +1,4 @@
 const API_URL = "https://12aplicacioneswebapp1.vercel.app/api/chat";
-
 const form = document.getElementById("chatForm");
 const input = document.getElementById("messageInput");
 const messages = document.getElementById("messages");
